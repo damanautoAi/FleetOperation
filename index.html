@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Operations — Control Center</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <button id="menuBtn" class="menu-btn" aria-label="Menu">&#9776;</button>
+    <div class="brand">
+      <span class="brand-mark">&#128667;</span>
+      <div class="brand-text">
+        <h1>FLEET OPERATIONS</h1>
+        <span class="brand-sub">Transport Management &amp; Control Center</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="connStatus" class="conn-chip conn-off" title="Connection status">&#9679; Offline</span>
+      <span id="genStamp" class="gen-stamp"></span>
+      <button id="refreshBtn" class="btn btn-accent" title="Fetch the latest data from Google Sheets">&#8635; Refresh</button>
+      <button id="saveBtn" class="btn btn-ghost" title="Download an updated data.js with all your changes baked in">&#128190; Save File</button>
+      <button id="settingsBtn" class="btn btn-ghost" title="Connect to Google Sheets">&#9881;</button>
+    </div>
+  </header>
+
+  <div id="updateBanner" class="update-banner">
+    ⚠️ <b>Update needed:</b> open your Google Sheet → Extensions → Apps Script, paste the latest
+    <code>GoogleAppsScript.gs</code>, then <b>Deploy → Manage deployments → ✏️ → New version → Deploy</b>.
+    Until then some tabs may load slowly or show blank rows.
+    <button id="bannerClose" class="banner-x">&times;</button>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="side-search">
+        <input id="navSearch" type="text" placeholder="Filter sections..." />
+      </div>
+      <nav id="navList" class="nav-list"></nav>
+      <div class="side-footer">
+        <div class="side-stat"><b id="statSheets">0</b><span>Sheets</span></div>
+        <div class="side-stat"><b id="statRows">0</b><span>Total Rows</span></div>
+      </div>
+    </aside>
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Overview -->
+      <section id="overview" class="view active">
+        <div class="page-head">
+          <h2 class="page-title">Operations Overview</h2>
+          <p class="page-desc">All workbook sections in one place. Click any card to open, edit, add, or remove records.</p>
+        </div>
+        <div id="cards" class="cards"></div>
+      </section>
+
+      <!-- Sheet view -->
+      <section id="sheetView" class="view">
+        <div class="page-head sheet-head">
+          <div>
+            <div class="crumb"><a href="#" id="backHome">Overview</a> &rsaquo; <span id="crumbName"></span></div>
+            <h2 id="sheetTitle" class="page-title"></h2>
+          </div>
+          <div id="viewToggle" class="view-toggle">
+            <button id="vtPrimary" data-mode="dash" class="vt-btn active">&#128202; Dashboard</button>
+            <button data-mode="table" class="vt-btn">&#128203; Table</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="tool-left">
+            <input id="tableSearch" type="text" placeholder="Search in this section..." />
+            <span id="rowInfo" class="row-info"></span>
+          </div>
+          <div class="tool-right">
+            <button id="addRowBtn" class="btn btn-accent">&#43; Add Row</button>
+            <button id="exportCsvBtn" class="btn btn-ghost">&#11015; CSV</button>
+            <select id="pageSize" class="select">
+              <option value="25">25 / page</option>
+              <option value="50" selected>50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="250">250 / page</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="dashboard" class="dashboard"></div>
+        <div id="formatted" class="formatted"></div>
+
+        <div class="table-wrap">
+          <table id="dataTable">
+            <thead id="dataHead"></thead>
+            <tbody id="dataBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <button id="firstPage" class="btn btn-sm">&laquo;</button>
+          <button id="prevPage" class="btn btn-sm">&lsaquo; Prev</button>
+          <span class="pager-info">Page <input id="pageInput" type="number" min="1" value="1" /> / <span id="pageCount">1</span></span>
+          <button id="nextPage" class="btn btn-sm">Next &rsaquo;</button>
+          <button id="lastPage" class="btn btn-sm">&raquo;</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Settings dialog -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-box">
+      <h3>Google Sheets connection</h3>
+      <p id="settingsDesc" class="modal-desc">Paste your Apps Script Web App URL (ends with <code>/exec</code>). See <code>.tools/GoogleAppsScript.gs</code> for the one-time setup steps.</p>
+      <input id="urlInput" type="text" placeholder="https://script.google.com/macros/s/.../exec" />
+      <label class="chk"><input id="autoChk" type="checkbox" checked /> Auto-refresh the open section every <span id="autoSecs">30</span>s</label>
+      <div class="modal-actions">
+        <button id="testBtn" class="btn btn-ghost">Test connection</button>
+        <span style="flex:1"></span>
+        <button id="disconnectBtn" class="btn btn-ghost">Disconnect</button>
+        <button id="connectBtn" class="btn btn-accent">Connect</button>
+      </div>
+      <div id="settingsMsg" class="modal-msg"></div>
+      <button id="closeSettings" class="modal-close">&times;</button>
+    </div>
+  </div>
+
+  <div id="loader" class="loader"><div class="spinner"></div><span id="loaderText">Loading…</span></div>
+
+  <!-- data.js (the ~16MB offline snapshot) is loaded ONLY when not connected to
+       Google Sheets, so live mode stays fast. See app.js ensureOfflineData(). -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
