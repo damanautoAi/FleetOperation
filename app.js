@@ -353,11 +353,30 @@
     return out.join("");
   }
 
+  // Dropdowns the sheet has as new-style "chips" that Apps Script getDataValidations() can't read.
+  var CALLER_OPTS = ["All", "kishor", "Bhupesh", "Kiran", "Manshi", "Renuka", "Sahil", "Tanisha"];
+  function forcedDropdowns(si, grid) {
+    var map = {};
+    if (String(DATA[si].name).toLowerCase() !== "daily vehicle status") return map;
+    for (var r = 0; r < Math.min(grid.length, 14); r++) {
+      var row = grid[r] || [];
+      for (var c = 0; c < row.length; c++) {
+        if (String(row[c]).toLowerCase().indexOf("caller") >= 0 && String(row[c]).indexOf(":") >= 0) {
+          for (var cc = c + 1; cc < row.length && cc <= c + 4; cc++) {
+            if (String(row[cc]).trim() !== "") { map[r + "_" + cc] = CALLER_OPTS; break; }
+          }
+        }
+      }
+    }
+    return map;
+  }
+
   /* ---------- formatted "Sheet" view: real colors + merges + dropdowns ---------- */
   function renderFormatted(si) {
     var grid = DATA[si].grid || [];
     var f = DATA[si].fmt || {};
     var bg = f.bg || [], fc = f.fc || [], fw = f.fw || [], merges = f.merges || [], dv = f.dv || {};
+    var forced = forcedDropdowns(si, grid);   // dropdowns Apps Script can't read (new-style chips)
     var nrows = Math.min(grid.length, bg.length || grid.length);
     var ncol = colCount(si);
     // trim trailing fully-empty rows for a tidy view
@@ -385,7 +404,7 @@
         if (fcc && fcc.toLowerCase() !== "#000000") style += "color:" + fcc + ";";
         if (bold) style += "font-weight:700;";
         var spanAttr = sp ? (" colspan='" + sp.cs + "' rowspan='" + sp.rs + "'") : "";
-        var opts = dv[key];
+        var opts = dv[key] || forced[key];
         if (opts) {
           html.push("<td class='fmt-cell' data-r='" + r + "' data-c='" + c + "'" + spanAttr + " style=\"" + style + "\">" + buildSelect(c, val, opts) + "</td>");
         } else {
