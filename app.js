@@ -109,8 +109,9 @@
   // row count for nav/cards without needing the grid loaded
   function count(si) {
     if (LIVE) {
-      if (DATA[si].locked) { var g = DATA[si].grid; return g ? Math.max(0, g.length - 1) : 0; }
-      return Math.max(0, (DATA[si].rows || 0) - 1);
+      var g = DATA[si].grid;
+      if (g) return Math.max(0, g.length - 1);            // exact once the sheet is loaded
+      return DATA[si].rows ? Math.max(0, DATA[si].rows - 1) : 0;
     }
     return effectiveRows(si).length;
   }
@@ -860,7 +861,7 @@
     });
   }
   var SRV_V = 1;        // detected Apps Script version (>=3 top-rows, >=4 colored view)
-  var LATEST_V = 4;     // newest GoogleAppsScript.gs version
+  var LATEST_V = 5;     // newest GoogleAppsScript.gs version
   var API = {
     ping: function () { return jsonp({ action: "ping" }, null, 30000); },
     list: function () { return jsonp({ action: "list" }, null, 30000); },
@@ -899,12 +900,10 @@
     var head = 0, limit = 0;
     if (SRV_V >= 3) {
       // updated script supports top-rows -> always fetch from the TOP (where data is)
-      if (fmtWanted) head = 150;
-      else if (DATA[si].locked) head = 600;
-      else if (DATA[si].rows > BIG) head = BIG;
+      head = fmtWanted ? 150 : (DATA[si].locked ? 600 : BIG);
     } else {
-      // old script: can only truncate from the bottom; keep it small to stay responsive
-      if (DATA[si].rows > BIG) limit = BIG;
+      // old script: can only truncate from the bottom
+      limit = BIG;
     }
     if (!silent) showLoader("Loading “" + name + "” from Google Sheets…");
     // de-dupe: if a fetch for this sheet is already in flight, reuse it

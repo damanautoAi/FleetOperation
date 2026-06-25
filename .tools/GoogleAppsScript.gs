@@ -16,7 +16,7 @@
  *  "New version" -> Deploy (the /exec URL stays the same).
  ***************************************************************************************/
 
-var APP_VERSION = 4;   // bumped when the script gains features (v3 head/top-rows, v4 fast colors)
+var APP_VERSION = 5;   // v3 head/top-rows, v4 colors, v5 fast lightweight list
 
 function doGet(e)  { return handle(e); }
 function doPost(e) { return handle(e); }
@@ -62,9 +62,11 @@ function parseRow(r) { return (typeof r === 'string') ? JSON.parse(r) : r; }
 var PROTECTED = ['Dashboard'];
 
 function listSheets() {
+  // Lightweight & fast: only names/flags. Row counts are read lazily when a sheet
+  // is opened (getSheet returns totalRows). Calling getLastRow/getLastColumn for
+  // every sheet here was very slow on formula-heavy workbooks and caused timeouts.
   return ss().getSheets().map(function (s) {
-    return { name: s.getName(), rows: s.getLastRow(), cols: s.getLastColumn(),
-             hidden: s.isSheetHidden(), locked: PROTECTED.indexOf(s.getName()) >= 0 };
+    return { name: s.getName(), hidden: s.isSheetHidden(), locked: PROTECTED.indexOf(s.getName()) >= 0 };
   });
 }
 
