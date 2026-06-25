@@ -186,10 +186,10 @@
     syncToggle();
     if (LIVE) {
       if (DATA[si].grid) {
-        render();   // instant from memory/cache
-        if (Date.now() - (DATA[si].fetchedAt || 0) > STALE_MS) loadSheet(si, true);   // refresh only if stale
+        render();              // instant from memory/cache
+        loadSheet(si, true);   // ALWAYS pull the latest in the background -> never stuck on old data
       } else {
-        loadSheet(si, false);   // first open -> fetch
+        loadSheet(si, false);  // first open -> fetch
       }
     } else {
       render();
@@ -954,8 +954,10 @@
     API.list().then(function (list) {
       DATA = list.filter(function (s) { return !s.hidden; }).map(function (s) {
         var d = { name: s.name, rows: s.rows, cols: s.cols, locked: !!s.locked, grid: null, truncated: false };
-        var c = cacheGet(s.name);   // hydrate from last session -> instant reopen, refresh on demand
-        if (c && c.p && c.p.grid) { d.grid = c.p.grid; d.cols = c.p.cols || s.cols; d.truncated = c.p.truncated; d.fmt = c.p.fmt || null; d.fetchedAt = 0; }
+        var c = cacheGet(s.name);   // hydrate from last session for instant display (only if recent)
+        if (c && c.p && c.p.grid && (Date.now() - (c.t || 0)) < 6 * 3600000) {
+          d.grid = c.p.grid; d.cols = c.p.cols || s.cols; d.truncated = c.p.truncated; d.fmt = c.p.fmt || null; d.fetchedAt = 0;
+        }
         return d;
       });
       LIVE = true;
