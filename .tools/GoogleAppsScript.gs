@@ -32,7 +32,7 @@ function handle(e) {
   try {
     var action = p.action || 'list';
     if      (action === 'ping')   out = { version: APP_VERSION };
-    else if (action === 'list')   out = listSheets();
+    else if (action === 'list')   out = { version: APP_VERSION, sheets: listSheets() };
     else if (action === 'meta')   out = meta();
     else if (action === 'sheet')  out = getSheet(p.name, p.limit ? Number(p.limit) : 0, p.head ? Number(p.head) : 0, p.fmt === '1' || p.fmt === 1);
     else if (action === 'add')    out = addRow(p.sheet, parseRow(p.row));

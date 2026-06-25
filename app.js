@@ -941,36 +941,43 @@
     return pr;
   }
 
+  function bannerOff() { try { return localStorage.getItem("fleet_banner_off") === "1"; } catch (e) { return false; } }
   function connectLive(cb) {
     setStatus("busy", "Connecting…");
     showLoader("Connecting to Google Sheets…");
-    // detect script version (old deployments don't know 'ping' -> stay at v1)
-    API.ping().then(function (p) { SRV_V = (p && p.version) || 1; }).catch(function () { SRV_V = 1; }).then(function () {
-      $("updateBanner").classList.toggle("show", SRV_V < 3);
-      doConnect(cb);
-    });
-  }
-  function doConnect(cb) {
-    API.list().then(function (list) {
-      DATA = list.filter(function (s) { return !s.hidden; }).map(function (s) {
-        var d = { name: s.name, rows: s.rows, cols: s.cols, locked: !!s.locked, grid: null, truncated: false };
-        var c = cacheGet(s.name);   // hydrate from last session for instant display (only if recent)
-        if (c && c.p && c.p.grid && (Date.now() - (c.t || 0)) < 6 * 3600000) {
-          d.grid = c.p.grid; d.cols = c.p.cols || s.cols; d.truncated = c.p.truncated; d.fmt = c.p.fmt || null; d.fetchedAt = 0;
-        }
-        return d;
-      });
-      LIVE = true;
-      hideLoader(); setStatus("live", "Live");
-      $("genStamp").textContent = "Connected · " + new Date().toLocaleTimeString();
-      buildNav(); goHome(); startPoll();
-      if (cb) cb(true);
+    API.list().then(function (resp) {
+      var list, ver = null;
+      if (Array.isArray(resp)) { list = resp; }                       // old script: bare array
+      else if (resp && resp.sheets) { list = resp.sheets; ver = resp.version || 1; }  // new: {version, sheets}
+      else { list = resp || []; }
+      function finish() {
+        SRV_V = ver || 1;
+        $("updateBanner").classList.toggle("show", SRV_V < 3 && !bannerOff());
+        buildFromList(list, cb);
+      }
+      if (ver == null) { API.ping().then(function (p) { ver = (p && p.version) || 1; }, function () { ver = 1; }).then(finish); }
+      else finish();
     }).catch(function (err) {
       hideLoader(); setStatus("err", "Offline");
       toast("Connection failed: " + err.message + " — using offline data.");
       LIVE = false; ensureOfflineData(startOffline);
       if (cb) cb(false);
     });
+  }
+  function buildFromList(list, cb) {
+    DATA = list.filter(function (s) { return !s.hidden; }).map(function (s) {
+      var d = { name: s.name, rows: s.rows, cols: s.cols, locked: !!s.locked, grid: null, truncated: false };
+      var c = cacheGet(s.name);   // hydrate from last session for instant display (only if recent)
+      if (c && c.p && c.p.grid && (Date.now() - (c.t || 0)) < 6 * 3600000) {
+        d.grid = c.p.grid; d.cols = c.p.cols || s.cols; d.truncated = c.p.truncated; d.fmt = c.p.fmt || null; d.fetchedAt = 0;
+      }
+      return d;
+    });
+    LIVE = true;
+    hideLoader(); setStatus("live", "Live");
+    $("genStamp").textContent = "Connected · " + new Date().toLocaleTimeString();
+    buildNav(); goHome(); startPoll();
+    if (cb) cb(true);
   }
 
   // Load the heavy offline data.js only when actually needed (keeps live mode fast).
@@ -1026,7 +1033,10 @@
     else { connectLive(function () { toast("All sections refreshed"); }); }
   });
 
-  $("bannerClose").addEventListener("click", function () { $("updateBanner").classList.remove("show"); });
+  $("bannerClose").addEventListener("click", function () {
+    $("updateBanner").classList.remove("show");
+    try { localStorage.setItem("fleet_banner_off", "1"); } catch (e) {}   // stay closed for good
+  });
 
   /* ---------- Settings dialog ---------- */
   function openSettings(msg) {
