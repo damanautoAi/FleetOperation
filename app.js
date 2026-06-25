@@ -921,6 +921,7 @@
       else { DATA[si].fmt = null; }   // no colors -> renders as a normal table
       DATA[si].fetchedAt = Date.now();
       cacheSet(name, { grid: v, cols: DATA[si].cols, rows: DATA[si].rows, truncated: DATA[si].truncated, fmt: DATA[si].fmt });
+      $("genStamp").textContent = "Updated · " + new Date().toLocaleTimeString();
       hideLoader(); setStatus("live", "Live");
       refreshCounts();
       if (state.si === si) render();
