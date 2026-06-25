@@ -14,7 +14,7 @@
   var URL_FROM_CONFIG = !!CFG_URL;                 // config.js wins -> auto-connect everywhere
   var WEBAPP = CFG_URL || (storedUrl || "");
   var LIVE = !!WEBAPP;
-  var BIG = CFG.bigSheetLimit || 500;
+  var BIG = CFG.bigSheetLimit || 250;
   var STALE_MS = 60000;   // skip re-fetching a sheet opened within the last 60s
   var autoOn = (function () {
     try { var a = localStorage.getItem("fleet_auto"); if (a !== null) return a === "1"; } catch (e) {}
@@ -188,7 +188,7 @@
     if (LIVE) {
       if (DATA[si].grid) {
         render();              // instant from memory/cache
-        loadSheet(si, true);   // ALWAYS pull the latest in the background -> never stuck on old data
+        if (Date.now() - (DATA[si].fetchedAt || 0) > 10000) loadSheet(si, true);   // quick re-opens skip refetch; still fresh
       } else {
         loadSheet(si, false);  // first open -> fetch
       }
@@ -919,7 +919,7 @@
     var head = 0, limit = 0;
     if (SRV_V >= 3) {
       // updated script supports top-rows -> always fetch from the TOP (where data is)
-      head = fmtWanted ? 150 : (DATA[si].locked ? 600 : BIG);
+      head = fmtWanted ? 80 : (DATA[si].locked ? 200 : BIG);
     } else {
       // old script: can only truncate from the bottom
       limit = BIG;

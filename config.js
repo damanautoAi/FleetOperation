@@ -20,5 +20,5 @@ window.FLEET_CONFIG = {
   webAppUrl: "https://script.google.com/macros/s/AKfycbw3qIxcZym3ibGEYQHwrksMNI_T9Q4kkMVxMvbxYfXrR5lQOJSesthgE4rEWrmLL9_h/exec",            // <-- paste your /exec URL here (one time)
 
   autoRefreshSeconds: 180,  // auto-refresh the open section every 3 minutes (0 = off)
-  bigSheetLimit: 500        // rows loaded per big tab (smaller = faster; pager shows them)
+  bigSheetLimit: 250        // rows loaded per big tab (smaller = faster; pager shows them)
 };
