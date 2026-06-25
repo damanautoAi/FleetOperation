@@ -862,8 +862,8 @@
   var SRV_V = 1;        // detected Apps Script version (>=3 top-rows, >=4 colored view)
   var LATEST_V = 4;     // newest GoogleAppsScript.gs version
   var API = {
-    ping: function () { return jsonp({ action: "ping" }, null, 15000); },
-    list: function () { return jsonp({ action: "list" }, null, 15000); },
+    ping: function () { return jsonp({ action: "ping" }, null, 30000); },
+    list: function () { return jsonp({ action: "list" }, null, 30000); },
     meta: function () { return jsonp({ action: "meta" }); },
     sheet: function (name, limit, head, fmt) { var p = { action: "sheet", name: name }; if (limit) p.limit = limit; if (head) p.head = head; if (fmt) p.fmt = 1; return jsonp(p); },
     add: function (name, row) { return jsonp({ action: "add", sheet: name, row: JSON.stringify(row) }); },
@@ -943,9 +943,10 @@
   }
 
   function bannerOff() { try { return localStorage.getItem("fleet_banner_off") === "1"; } catch (e) { return false; } }
-  function connectLive(cb) {
-    setStatus("busy", "Connecting…");
-    showLoader("Connecting to Google Sheets…");
+  function connectLive(cb, attempt) {
+    attempt = attempt || 1;
+    setStatus("busy", attempt > 1 ? "Retrying…" : "Connecting…");
+    showLoader(attempt > 1 ? "Retrying connection…" : "Connecting to Google Sheets…");
     API.list().then(function (resp) {
       var list, ver = null;
       if (Array.isArray(resp)) { list = resp; }                       // old script: bare array
@@ -959,6 +960,7 @@
       if (ver == null) { API.ping().then(function (p) { ver = (p && p.version) || 1; }, function () { ver = 1; }).then(finish); }
       else finish();
     }).catch(function (err) {
+      if (attempt < 2) { setTimeout(function () { connectLive(cb, attempt + 1); }, 1500); return; }  // cold-start retry
       hideLoader(); setStatus("err", "Not connected");
       LIVE = false;
       showConnError(err && err.message);   // don't auto-download the 16MB offline file on mobile
