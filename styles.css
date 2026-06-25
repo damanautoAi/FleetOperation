@@ -213,6 +213,15 @@ table.dash-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
 table.dash-table tr.total-row td{background:#15233b !important;color:#fff;font-weight:700;border-bottom:none;}
 table.dash-table tr.total-row td.num{color:var(--amber);}
 
+/* ---- Connection error screen ---- */
+.conn-error{grid-column:1/-1;text-align:center;padding:40px 18px;max-width:560px;margin:30px auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);}
+.conn-error .ce-ico{font-size:42px;}
+.conn-error h3{color:var(--navy);font-size:22px;margin:12px 0 6px;font-family:'Inter',sans-serif;font-weight:700;}
+.conn-error .ce-msg{color:var(--red);font-size:13px;margin:0 0 10px;word-break:break-word;}
+.conn-error .ce-hint{color:var(--ink-soft);font-size:13px;line-height:1.55;margin:0 auto 16px;}
+.conn-error .ce-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
 /* ---- Update banner ---- */
 .update-banner{display:none;background:#fff4d6;color:#7a5a09;border-bottom:1px solid #e6cf87;
   padding:10px 44px 10px 16px;font-size:13px;line-height:1.5;position:relative;}

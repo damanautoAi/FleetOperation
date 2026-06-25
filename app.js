@@ -834,14 +834,14 @@
    *  LIVE MODE — Google Sheets connector (JSONP, no CORS issues from file://)
    * ====================================================================== */
   var apiSeq = 0;
-  function jsonp(params, baseOverride) {
+  function jsonp(params, baseOverride, timeoutMs) {
     var base = baseOverride || WEBAPP;
     return new Promise(function (resolve, reject) {
       if (!base) { reject(new Error("No Web App URL configured")); return; }
       var cb = "__fleetcb" + (++apiSeq);
       var s = document.createElement("script");
       var done = false;
-      var timer = setTimeout(function () { finish(new Error("timeout — check the URL / deployment")); }, 70000);
+      var timer = setTimeout(function () { finish(new Error("timeout — check internet / deployment access")); }, timeoutMs || 70000);
       function finish(err, data) {
         if (done) return; done = true;
         clearTimeout(timer);
@@ -862,8 +862,8 @@
   var SRV_V = 1;        // detected Apps Script version (>=3 top-rows, >=4 colored view)
   var LATEST_V = 4;     // newest GoogleAppsScript.gs version
   var API = {
-    ping: function () { return jsonp({ action: "ping" }); },
-    list: function () { return jsonp({ action: "list" }); },
+    ping: function () { return jsonp({ action: "ping" }, null, 15000); },
+    list: function () { return jsonp({ action: "list" }, null, 15000); },
     meta: function () { return jsonp({ action: "meta" }); },
     sheet: function (name, limit, head, fmt) { var p = { action: "sheet", name: name }; if (limit) p.limit = limit; if (head) p.head = head; if (fmt) p.fmt = 1; return jsonp(p); },
     add: function (name, row) { return jsonp({ action: "add", sheet: name, row: JSON.stringify(row) }); },
@@ -958,11 +958,27 @@
       if (ver == null) { API.ping().then(function (p) { ver = (p && p.version) || 1; }, function () { ver = 1; }).then(finish); }
       else finish();
     }).catch(function (err) {
-      hideLoader(); setStatus("err", "Offline");
-      toast("Connection failed: " + err.message + " — using offline data.");
-      LIVE = false; ensureOfflineData(startOffline);
+      hideLoader(); setStatus("err", "Not connected");
+      LIVE = false;
+      showConnError(err && err.message);   // don't auto-download the 16MB offline file on mobile
       if (cb) cb(false);
     });
+  }
+  function showConnError(msg) {
+    navList.innerHTML = "";
+    $("statSheets").textContent = "–"; $("statRows").textContent = "–";
+    cards.innerHTML =
+      "<div class='conn-error'>" +
+        "<div class='ce-ico'>📡</div>" +
+        "<h3>Couldn't reach the Google Sheet</h3>" +
+        "<p class='ce-msg'>" + esc(msg || "Network/blocked") + "</p>" +
+        "<p class='ce-hint'>Check your internet, and make sure the Apps Script is deployed with <b>“Who has access: Anyone”</b>. Then tap Retry.</p>" +
+        "<div class='ce-btns'><button id='retryConn' class='btn btn-accent'>↻ Retry</button>" +
+        "<button id='offlineConn' class='btn btn-ghost'>Open offline snapshot</button></div>" +
+      "</div>";
+    var rb = document.getElementById("retryConn"); if (rb) rb.addEventListener("click", function () { showLoader("Connecting…"); connectLive(); });
+    var ob = document.getElementById("offlineConn"); if (ob) ob.addEventListener("click", function () { ensureOfflineData(startOffline); });
+    showView("overview");
   }
   function buildFromList(list, cb) {
     DATA = list.filter(function (s) { return !s.hidden; }).map(function (s) {
