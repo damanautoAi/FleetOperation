@@ -314,7 +314,7 @@
           dataRows.push(g[j]); j++;
           if (rc[rc.length - 1] > maxc) maxc = rc[rc.length - 1];
         }
-        html.push(buildDashTable(header, dataRows, maxc));
+        html.push(buildDashTable(header, dataRows, maxc, i));
         i = j; continue;
       }
       // fallback: render the row as a simple strip of tiles
@@ -328,13 +328,21 @@
     $("rowInfo").textContent = "";
   }
 
-  function buildDashTable(header, rows, maxc) {
+  function isDateStr(s) { return /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(String(s).trim()); }
+  function dateToISO(s) { var m = String(s).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m ? (m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2)) : ""; }
+  function isoToDisp(iso) { var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? (m[3] + "/" + m[2] + "/" + m[1]) : iso; }
+
+  function buildDashTable(header, rows, maxc, hdrRow) {
     var pct = [];
     var out = ['<div class="dash-tablewrap"><table class="dash-table"><thead><tr>'];
     for (var c = 0; c <= maxc; c++) {
       var h = header[c] != null ? header[c] : "";
       if (String(h).indexOf("%") >= 0) pct[c] = true;
-      out.push('<th>' + esc2(h) + '</th>');
+      if (hdrRow != null && isDateStr(h)) {
+        out.push('<th class="dash-date-th"><input type="date" class="dash-date" data-r="' + hdrRow + '" data-c="' + c + '" value="' + dateToISO(h) + '" title="Change date"></th>');
+      } else {
+        out.push('<th>' + esc2(h) + '</th>');
+      }
     }
     out.push('</tr></thead><tbody>');
     rows.forEach(function (r) {
@@ -429,6 +437,21 @@
       if (!DATA[si].grid[r]) DATA[si].grid[r] = []; DATA[si].grid[r][c] = val; setStatus("live", "Live"); toast("Saved to sheet");
     }).catch(function (err) { if (revert) revert(cur); setStatus("err", "Error"); toast("Save failed: " + err.message); });
   }
+
+  // dashboard date-picker (e.g. E-Waybill date in a table heading) -> writes to the sheet
+  $("dashboard").addEventListener("change", function (ev) {
+    var inp = ev.target;
+    if (!inp.classList || !inp.classList.contains("dash-date")) return;
+    var r = +inp.dataset.r, c = +inp.dataset.c, iso = inp.value;
+    if (!iso) return;
+    var si = state.si, name = DATA[si].name;
+    setStatus("busy", "Saving date…");
+    API.update(name, r + 1, c + 1, iso).then(function () {
+      if (DATA[si].grid[r]) DATA[si].grid[r][c] = isoToDisp(iso);
+      setStatus("live", "Live"); toast("Date updated — refreshing…");
+      DATA[si].fetchedAt = 0; loadSheet(si, true);   // recompute dashboard with new date
+    }).catch(function (err) { setStatus("err", "Error"); toast("Couldn't update date: " + err.message); });
+  });
 
   // formatted-view handlers
   $("formatted").addEventListener("change", function (ev) {
@@ -880,7 +903,7 @@
     });
   }
   var SRV_V = 1;        // detected Apps Script version (>=3 top-rows, >=4 colored view)
-  var LATEST_V = 5;     // newest GoogleAppsScript.gs version
+  var LATEST_V = 6;     // newest GoogleAppsScript.gs version
   var API = {
     ping: function () { return jsonp({ action: "ping" }, null, 30000); },
     list: function () { return jsonp({ action: "list" }, null, 30000); },

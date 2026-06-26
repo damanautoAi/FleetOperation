@@ -16,7 +16,7 @@
  *  "New version" -> Deploy (the /exec URL stays the same).
  ***************************************************************************************/
 
-var APP_VERSION = 5;   // v3 head/top-rows, v4 colors, v5 fast lightweight list
+var APP_VERSION = 6;   // v3 head, v4 colors, v5 fast list, v6 dashboard date edits
 
 function doGet(e)  { return handle(e); }
 function doPost(e) { return handle(e); }
@@ -149,12 +149,19 @@ function addRow(name, rowArr) {
 }
 
 function updateCell(name, row, col, val) {
-  guard(name);
+  // single-cell edits are allowed on any sheet (incl. Dashboard) — e.g. the
+  // E-Waybill date picker. (add/delete rows are still guarded.)
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var sh = ss().getSheetByName(name);
     if (!sh) throw 'No sheet: ' + name;
-    sh.getRange(row, col).setValue(val);
+    // ISO date string ("YYYY-MM-DD") -> real Date so the cell stays a date
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      var p = val.split('-');
+      sh.getRange(row, col).setValue(new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+    } else {
+      sh.getRange(row, col).setValue(val);
+    }
     SpreadsheetApp.flush();
     return { row: row, col: col };
   } finally { lock.releaseLock(); }
