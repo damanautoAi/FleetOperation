@@ -170,6 +170,7 @@ tbody tr:hover td.col-act{background:#f3efe6;}
 
 /* ---- View toggle ---- */
 .sheet-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.sheet-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .view-toggle{display:none;background:#ece4d4;border:1px solid var(--line-2);border-radius:9px;padding:3px;}
 .view-toggle.show{display:inline-flex;}
 .vt-btn{border:none;background:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-soft);font-family:inherit;}

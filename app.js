@@ -783,6 +783,7 @@
   });
 
   $("exportCsvBtn").addEventListener("click", function () { exportCSV(state.si); });
+  $("exportBtn").addEventListener("click", function () { if (state.si >= 0) exportCSV(state.si); });
 
   // view toggle (Dashboard / formatted Sheet vs Table)
   $("viewToggle").addEventListener("click", function (ev) {
