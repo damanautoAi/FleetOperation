@@ -1021,7 +1021,8 @@
         "<div class='ce-btns'><button id='retryConn' class='btn btn-accent'>↻ Retry</button>" +
         "<button id='offlineConn' class='btn btn-ghost'>Open offline snapshot</button></div>" +
       "</div>";
-    var rb = document.getElementById("retryConn"); if (rb) rb.addEventListener("click", function () { showLoader("Connecting…"); connectLive(); });
+    // Retry does a FRESH, cache-busted reload so a stale cached app.js can't keep failing
+    var rb = document.getElementById("retryConn"); if (rb) rb.addEventListener("click", function () { location.replace(location.pathname + "?r=" + Date.now()); });
     var ob = document.getElementById("offlineConn"); if (ob) ob.addEventListener("click", function () { ensureOfflineData(startOffline); });
     showView("overview");
   }
