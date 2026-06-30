@@ -601,9 +601,15 @@
     $("pageCount").textContent = pageCount;
     $("pageInput").value = state.page;
     $("pageInput").max = pageCount;
+    var trunc = LIVE && DATA[si].truncated && !DATA[si].full;
     $("rowInfo").textContent = rows.length.toLocaleString() + " row" + (rows.length === 1 ? "" : "s") +
       (state.q ? " (filtered)" : "") + " · " + ncol + " cols" +
-      (LIVE && DATA[si].truncated ? " · newest " + BIG + " shown (large sheet)" : "");
+      (trunc ? " · showing top " + (DATA[si].grid.length - 1).toLocaleString() + " of " + (DATA[si].rows || "?").toLocaleString() : "");
+    var lab = $("loadAllBtn");
+    if (lab) {
+      if (trunc) { lab.style.display = ""; lab.textContent = "⬇ Load all " + (DATA[si].rows || "").toLocaleString() + " rows"; }
+      else { lab.style.display = "none"; }
+    }
     $("firstPage").disabled = $("prevPage").disabled = state.page <= 1;
     $("lastPage").disabled = $("nextPage").disabled = state.page >= pageCount;
   }
@@ -784,6 +790,12 @@
 
   $("exportCsvBtn").addEventListener("click", function () { exportCSV(state.si); });
   $("exportBtn").addEventListener("click", function () { if (state.si >= 0) exportCSV(state.si); });
+  $("loadAllBtn").addEventListener("click", function () {
+    var si = state.si; if (si < 0) return;
+    DATA[si].full = true;
+    showLoader("Loading all rows…");
+    loadSheet(si, false).then(function () { toast("All rows loaded"); });
+  });
 
   // view toggle (Dashboard / formatted Sheet vs Table)
   $("viewToggle").addEventListener("click", function (ev) {
@@ -941,7 +953,9 @@
     var name = DATA[si].name;
     var fmtWanted = isFmt(si) && SRV_V >= 4;   // colored view needs the fast v4 script
     var head = 0, limit = 0;
-    if (SRV_V >= 3) {
+    if (DATA[si].full) {
+      head = 0; limit = 0;   // user asked for ALL rows of this sheet
+    } else if (SRV_V >= 3) {
       // updated script supports top-rows -> always fetch from the TOP (where data is)
       head = fmtWanted ? 80 : (DATA[si].locked ? 200 : BIG);
     } else {
@@ -1032,6 +1046,7 @@
       var c = cacheGet(s.name);   // hydrate from last session for instant display (only if recent)
       if (c && c.p && c.p.grid && (Date.now() - (c.t || 0)) < 6 * 3600000) {
         d.grid = c.p.grid; d.cols = c.p.cols || s.cols; d.truncated = c.p.truncated; d.fmt = c.p.fmt || null; d.fetchedAt = 0;
+        if (c.p.grid.length > BIG + 1) d.full = true;   // keep "all rows" if it was loaded before
       }
       return d;
     });
